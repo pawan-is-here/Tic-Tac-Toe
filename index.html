@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+        }
+
+        .status {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            height: 30px;
+            color: #555;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            height: 100px;
+            transition: all 0.3s ease;
+        }
+
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+
+        .cell.x {
+            color: #e74c3c;
+        }
+
+        .cell.o {
+            color: #3498db;
+        }
+
+        .cell.highlight {
+            background-color: #f1c40f;
+            color: white;
+        }
+
+        .reset-btn {
+            background-color: #3498db;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            background-color: #2980b9;
+        }
+
+        @media (max-width: 500px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .cell {
+                height: 80px;
+                font-size: 2.5rem;
+            }
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .score {
+            padding: 10px 20px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            min-width: 100px;
+        }
+
+        .score.x {
+            color: #e74c3c;
+        }
+
+        .score.o {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+        
+        <div class="score-board">
+            <div class="score x">X: <span id="score-x">0</span></div>
+            <div class="score o">O: <span id="score-o">0</span></div>
+        </div>
+        
+        <div class="status" id="status">X's turn</div>
+        
+        <div class="board" id="board">
+            <div class="cell" data-cell-index="0"></div>
+            <div class="cell" data-cell-index="1"></div>
+            <div class="cell" data-cell-index="2"></div>
+            <div class="cell" data-cell-index="3"></div>
+            <div class="cell" data-cell-index="4"></div>
+            <div class="cell" data-cell-index="5"></div>
+            <div class="cell" data-cell-index="6"></div>
+            <div class="cell" data-cell-index="7"></div>
+            <div class="cell" data-cell-index="8"></div>
+        </div>
+        
+        <button class="reset-btn" id="reset-btn">Reset Game</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game state variables
+            let gameActive = true;
+            let currentPlayer = 'X';
+            let gameState = ['', '', '', '', '', '', '', '', ''];
+            let scores = { X: 0, O: 0 };
+            
+            // DOM elements
+            const statusDisplay = document.getElementById('status');
+            const cells = document.querySelectorAll('.cell');
+            const resetButton = document.getElementById('reset-btn');
+            const scoreX = document.getElementById('score-x');
+            const scoreO = document.getElementById('score-o');
+            
+            // Winning combinations
+            const winningConditions = [
+                [0, 1, 2], // Top row
+                [3, 4, 5], // Middle row
+                [6, 7, 8], // Bottom row
+                [0, 3, 6], // Left column
+                [1, 4, 7], // Middle column
+                [2, 5, 8], // Right column
+                [0, 4, 8], // Diagonal top-left to bottom-right
+                [2, 4, 6]  // Diagonal top-right to bottom-left
+            ];
+            
+            // Messages
+            const winningMessage = () => `${currentPlayer} wins!`;
+            const drawMessage = () => `Game ended in a draw!`;
+            const currentPlayerTurn = () => `${currentPlayer}'s turn`;
+            
+            // Set initial status message
+            statusDisplay.innerHTML = currentPlayerTurn();
+            
+            // Handle cell click
+            function handleCellClick(clickedCellEvent) {
+                // Get clicked cell
+                const clickedCell = clickedCellEvent.target;
+                const clickedCellIndex = parseInt(clickedCell.getAttribute('data-cell-index'));
+                
+                // Check if cell is already played or game is inactive
+                if (gameState[clickedCellIndex] !== '' || !gameActive) {
+                    return;
+                }
+                
+                // Update game state and UI
+                handleCellPlayed(clickedCell, clickedCellIndex);
+                handleResultValidation();
+            }
+            
+            // Update cell and game state
+            function handleCellPlayed(clickedCell, clickedCellIndex) {
+                gameState[clickedCellIndex] = currentPlayer;
+                clickedCell.innerHTML = currentPlayer;
+                clickedCell.classList.add(currentPlayer.toLowerCase());
+            }
+            
+            // Check for win or draw
+            function handleResultValidation() {
+                let roundWon = false;
+                let winningLine = null;
+                
+                // Check all winning combinations
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const [a, b, c] = winningConditions[i];
+                    const condition = gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c];
+                    
+                    if (condition) {
+                        roundWon = true;
+                        winningLine = winningConditions[i];
+                        break;
+                    }
+                }
+                
+                // Handle win
+                if (roundWon) {
+                    statusDisplay.innerHTML = winningMessage();
+                    gameActive = false;
+                    
+                    // Highlight winning cells
+                    winningLine.forEach(index => {
+                        cells[index].classList.add('highlight');
+                    });
+                    
+                    // Update score
+                    scores[currentPlayer]++;
+                    updateScoreDisplay();
+                    return;
+                }
+                
+                // Handle draw
+                const roundDraw = !gameState.includes('');
+                if (roundDraw) {
+                    statusDisplay.innerHTML = drawMessage();
+                    gameActive = false;
+                    return;
+                }
+                
+                // Continue game with next player
+                changePlayer();
+            }
+            
+            // Switch player
+            function changePlayer() {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                statusDisplay.innerHTML = currentPlayerTurn();
+            }
+            
+            // Update score display
+            function updateScoreDisplay() {
+                scoreX.textContent = scores.X;
+                scoreO.textContent = scores.O;
+            }
+            
+            // Reset game
+            function handleReset() {
+                gameActive = true;
+                currentPlayer = 'X';
+                gameState = ['', '', '', '', '', '', '', '', ''];
+                statusDisplay.innerHTML = currentPlayerTurn();
+                
+                // Clear board
+                cells.forEach(cell => {
+                    cell.innerHTML = '';
+                    cell.classList.remove('x', 'o', 'highlight');
+                });
+            }
+            
+            // Event listeners
+            cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+            resetButton.addEventListener('click', handleReset);
+        });
+    </script>
+</body>
+</html>
